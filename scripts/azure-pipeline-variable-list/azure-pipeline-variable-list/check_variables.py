@@ -8,6 +8,15 @@ def extract_variables(content):
     pattern = r'\$\((.*?)\)'
     return set(re.findall(pattern, content))
 
+def extract_variable_names(content):
+    """Extract variable names from lines starting with '## - ' prefix."""
+    variable_names = set()
+    for line in content.splitlines():
+        if line.startswith('## - '):
+            variable_name = line[5:].strip()
+            variable_names.add(variable_name)
+    return variable_names
+
 def process_yaml_file(file_path):
     """Process a YAML file and extract variables."""
     try:
@@ -15,6 +24,7 @@ def process_yaml_file(file_path):
         with open(file_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
             variables = extract_variables(raw_content)
+            variables_in_group = extract_variable_names(raw_content)
 
         # Then parse as YAML to get the structure (optional, for future use)
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -24,10 +34,10 @@ def process_yaml_file(file_path):
                 print(f"Warning: Could not parse {file_path} as valid YAML")
                 yaml_content = None
 
-        return variables
+        return variables, variables_in_group
     except Exception as e:
         print(f"Error processing {file_path}: {str(e)}")
-        return set()
+        return set(), set()
 
 def find_yaml_files(directory):
     """Find all YAML files in the given directory and subdirectories."""
@@ -45,11 +55,13 @@ def main():
 
     # Process each file
     all_variables = {}
+    all_variables_in_group = {}
 
     for file_path in yaml_files:
-        variables = process_yaml_file(file_path)
+        variables, variables_in_group = process_yaml_file(file_path)
         if variables:
             all_variables[str(file_path)] = variables
+            all_variables_in_group[str(file_path)] = variables_in_group
 
     # Print results
     print("\nVariables found in pipeline files123:")
@@ -58,7 +70,7 @@ def main():
     for file_path, variables in all_variables.items():
         print(f"\n{os.path.relpath(file_path, pipelines_dir)}:")
         for var in sorted(variables):
-            print(f"  - {var}")
+            print(f"  - {var}" + ("\033[92m (by variable group)\033[0m" if var in all_variables_in_group[file_path] else ""))
 
 if __name__ == "__main__":
     main()
