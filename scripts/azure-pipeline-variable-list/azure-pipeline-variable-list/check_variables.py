@@ -4,9 +4,18 @@ import yaml
 from pathlib import Path
 
 def extract_variables(content):
-    """Extract all variables in $(VARIABLE) format from a string."""
-    pattern = r'\$\((.*?)\)'
-    return set(re.findall(pattern, content))
+    """Extract all variables in $(VARIABLE) format from a string.
+    Only matches valid variable names, not commands or expressions.
+    Valid variable names consist of letters, numbers, underscores, and dots (for nested variables)."""
+    pattern = r'\$\(([a-zA-Z][a-zA-Z0-9_\.]*)\)'
+    matches = re.findall(pattern, content)
+    # Handle nested variables by flattening them
+    variables = set()
+    for match in matches:
+        # Split on dots for hierarchical variables
+        parts = match.split('.')
+        variables.update(parts)
+    return variables
 
 def extract_variable_names(content):
     """Extract variable names from lines starting with '## - ' prefix."""
