@@ -6,7 +6,6 @@ from pathlib import Path
 def extract_variables(content):
     """Extract all variables in $(VARIABLE) format from a string."""
     pattern = r'\$\((.*?)\)'
-    print(f"try to extract variables from {content}")
     return set(re.findall(pattern, content))
 
 def process_yaml_file(file_path):
