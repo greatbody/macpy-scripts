@@ -31,7 +31,7 @@ class TestExtractVariables(unittest.TestCase):
             echo "Invalid $( space in var )"
             echo "$(MY-INVALID-VAR)"
         """
-        expected = {'BUILD_ID', 'system', 'defaultWorkingDirectory'}
+        expected = {'BUILD_ID', 'system.defaultWorkingDirectory'}
         self.assertEqual(extract_variables(content), expected)
 
     def test_empty_and_invalid(self):
@@ -50,7 +50,11 @@ class TestExtractVariables(unittest.TestCase):
         $(nested.variable)
         $(deeply.nested.variable)
         """
-        expected = {'VAR1', 'VAR2', 'nested', 'variable', 'deeply'}
+        expected = {
+            'VAR1', 'VAR2',
+            'nested.variable',
+            'deeply.nested.variable'
+        }
         self.assertEqual(extract_variables(content), expected)
 
 if __name__ == '__main__':
