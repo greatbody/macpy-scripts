@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'azops-vars=check_variables:main',
+            'azpipvar=check_variables:main',
         ],
     },
     author="greatbody",
