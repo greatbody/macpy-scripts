@@ -27,11 +27,11 @@ jobs:
         pip install build twine
 
     - name: Build package
-      working-directory: ./azure-pipeline-variable-list
+      working-directory: ./azpipvar
       run: python -m build
 
     - name: Publish to PyPI
-      working-directory: ./azure-pipeline-variable-list
+      working-directory: ./azpipvar
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
