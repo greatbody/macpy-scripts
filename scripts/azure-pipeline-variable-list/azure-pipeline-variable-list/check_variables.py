@@ -12,12 +12,15 @@ def extract_variables(content):
     return set(matches)
 
 def extract_variable_names(content):
-    """Extract variable names from lines starting with '## - ' prefix."""
+    """Extract variable names from lines starting with '## - ' prefix.
+    Strips any additional content after the variable name like comments, descriptions, or trailing spaces."""
     variable_names = set()
     for line in content.splitlines():
-        if line.startswith('## - '):
-            variable_name = line[5:].strip()
-            variable_names.add(variable_name)
+        if line.strip().startswith('## - '):
+            # Remove the '## - ' prefix and get the first word
+            variable_name = line.strip()[5:].split('#')[0].split('(')[0].split(':')[0].split()[0].strip()
+            if variable_name:  # Only add non-empty variable names
+                variable_names.add(variable_name)
     return variable_names
 
 def process_yaml_file(file_path):
