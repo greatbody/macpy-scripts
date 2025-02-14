@@ -2,6 +2,10 @@
 
 This repository contains a collection of independent Python scripts for various automation tasks. Each script is self-contained in its own directory with its own dependencies and setup.
 
+This repository is completed with assistance from [Cursor](https://cursor.sh/).
+
+这个项目是使用 [Cursor](https://cursor.sh/) 完成的。
+
 | Script    | Status                                                                                                                                                                              |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | azpipvar | [![azpipvar](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml/badge.svg)](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml) |
