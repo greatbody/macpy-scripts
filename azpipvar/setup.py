@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="azpipvar",
-    version="0.1.0",
+    version="0.1.2",
     py_modules=['check_variables'],
     package_dir={'': 'src'},
     install_requires=[
