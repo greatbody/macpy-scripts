@@ -4,9 +4,9 @@
 
 A tool to analyze and list variables used in Azure Pipeline YAML files.
 
-[English](#features) | [中文](#chinese)
+[English](#features) | [中文](#功能说明)
 
-## Chinese
+## 功能说明
 
 一个用于分析和列出 Azure Pipeline YAML 文件中使用的变量的工具。
 
