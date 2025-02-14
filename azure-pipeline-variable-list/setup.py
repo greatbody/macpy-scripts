@@ -1,13 +1,19 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-    name="azure-pipeline-variable-list",
+    name="azpipvar",
     version="0.1.0",
     py_modules=['check_variables'],
     package_dir={'': 'src'},
     install_requires=[
         "pyyaml>=6.0.1",
     ],
+    extras_require={
+        'test': [
+            'pytest>=7.0.0',
+            'pytest-cov>=4.0.0',
+        ],
+    },
     entry_points={
         'console_scripts': [
             'azpipvar=check_variables:main',
@@ -21,8 +27,15 @@ setup(
     url="https://github.com/greatbody/azure-pipeline-variable-list",
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Topic :: Software Development :: Build Tools",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
 )
