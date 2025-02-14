@@ -35,4 +35,9 @@ ENV/
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Project specific
+scripts/**/build/
+scripts/**/dist/
+scripts/**/*.egg-info/ 

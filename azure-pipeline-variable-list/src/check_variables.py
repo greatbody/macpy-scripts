@@ -70,7 +70,7 @@ def main():
             all_variables_in_group[str(file_path)] = variables_in_group
 
     # Print results
-    print("\nVariables found in pipeline files123:")
+    print("\nVariables found in pipeline files:")
     print("==================================")
 
     for file_path, variables in all_variables.items():
@@ -79,4 +79,4 @@ def main():
             print(f"  - {var}" + ("\033[92m (by variable group)\033[0m" if var in all_variables_in_group[file_path] else ""))
 
 if __name__ == "__main__":
-    main()
+    main() 

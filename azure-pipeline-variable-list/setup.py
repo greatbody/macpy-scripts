@@ -4,7 +4,7 @@ setup(
     name="azure-pipeline-variable-list",
     version="0.1.0",
     py_modules=['check_variables'],
-    package_dir={'': 'azure-pipeline-variable-list'},
+    package_dir={'': 'src'},
     install_requires=[
         "pyyaml>=6.0.1",
     ],
