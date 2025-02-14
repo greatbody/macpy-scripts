@@ -1,6 +1,6 @@
 # Azure Pipeline Variable List
 
-[![Test](https://github.com/greatbody/macpy-scripts/actions/workflows/test.yml/badge.svg)](https://github.com/greatbody/macpy-scripts/actions/workflows/test.yml)
+[![Test](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml/badge.svg)](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml)
 
 A tool to analyze and list variables used in Azure Pipeline YAML files.
 
