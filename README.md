@@ -2,7 +2,7 @@
 
 This repository contains a collection of independent Python scripts for various automation tasks. Each script is self-contained in its own directory with its own dependencies and setup.
 
-| Badge    | Status                                                                                                                                                                              |
+| Script    | Status                                                                                                                                                                              |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | azpipvar | [![azpipvar](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml/badge.svg)](https://github.com/greatbody/macpy-scripts/actions/workflows/azpipvar-test.yml) |
 
