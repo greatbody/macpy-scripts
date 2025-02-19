@@ -115,6 +115,18 @@ You can install the package using pip:
 pip install azpipvar
 ```
 
+To help us improve the package by sharing anonymous installation statistics:
+
+```bash
+pip install azpipvar --install-option="--track-install"
+```
+
+Note: The installation tracking is completely optional and transparent. When enabled:
+- A single GET request is made to count the installation
+- No personal or system information is collected
+- Failed tracking attempts will not affect installation
+- The tracking server timeout is set to 2 seconds
+
 For development installation from source:
 
 ```bash
