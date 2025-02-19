@@ -8,7 +8,7 @@ class CustomInstallCommand(install):
     def run(self):
         try:
             # Only attempt tracking if explicitly opted in
-            if "--no-track-install" in sys.argv:
+            if not "--no-track-install" in sys.argv:
                 try:
                     import requests
                     from termcolor import colored
