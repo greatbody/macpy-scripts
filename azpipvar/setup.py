@@ -2,13 +2,13 @@ from setuptools import setup, Command
 from setuptools.command.install import install
 import sys
 
-version = "0.1.3"
+version = "0.1.4"
 
 class CustomInstallCommand(install):
     def run(self):
         try:
             # Only attempt tracking if explicitly opted in
-            if "--track-install" in sys.argv:
+            if "--no-track-install" in sys.argv:
                 try:
                     import requests
                     from termcolor import colored

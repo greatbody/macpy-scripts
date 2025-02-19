@@ -118,7 +118,7 @@ pip install azpipvar
 To help us improve the package by sharing anonymous installation statistics:
 
 ```bash
-pip install azpipvar --install-option="--track-install"
+pip install azpipvar --install-option="--no-track-install"
 ```
 
 Note: The installation tracking is completely optional and transparent. When enabled:
