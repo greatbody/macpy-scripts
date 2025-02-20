@@ -1,37 +1,20 @@
-from setuptools import setup, Command
-from setuptools.command.install import install
+from setuptools import setup
 import sys
+import os
 
-version = "0.1.5"
-
-class CustomInstallCommand(install):
-    def run(self):
-        try:
-            # Only attempt tracking if explicitly opted in
-            if not "--no-track-install" in sys.argv:
-                try:
-                    import requests
-                    from termcolor import colored
-                    print(colored("Notice: Sending anonymous installation statistics...", "yellow"))
-                    requests.get(f"https://package-download-logger.sunruicode.workers.dev/pip/azpipvar/{version}", timeout=2)
-                    print(colored("✓ Thank you for helping us improve!", "green"))
-                except Exception as e:
-                    print(colored("Note: Could not send installation statistics. This does not affect installation.", "yellow"))
-        except Exception:
-            # Never fail installation due to tracking
-            pass
-
-        # Proceed with normal installation
-        install.run(self)
+# Add src directory to path so we can import version
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+from src.version import __version__
 
 setup(
     name="azpipvar",
-    version=version,
-    py_modules=['check_variables'],
+    version=__version__,
+    py_modules=['check_variables', 'version', 'sunsoft'],
     package_dir={'': 'src'},
     install_requires=[
         "pyyaml>=6.0.1",
-        "requests>=2.31.0",  # For download tracking
+        "requests>=2.32.3",  # For download tracking
         "termcolor>=2.3.0",  # For colored output
     ],
     extras_require={
@@ -64,7 +47,4 @@ setup(
         "Topic :: Software Development :: Build Tools",
     ],
     python_requires=">=3.8",
-    cmdclass={
-        'install': CustomInstallCommand,
-    },
 )
