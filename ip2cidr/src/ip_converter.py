@@ -2,6 +2,8 @@
 
 import argparse
 import sys
+from version import __version__
+from sunsoft import send_first_run_stats
 
 def ip_to_cidr(ip_list):
     """Convert a comma-separated list of IP addresses to their /24 CIDR networks."""
@@ -31,6 +33,12 @@ def ip_to_cidr(ip_list):
     return sorted(list(cidr_networks))
 
 def main():
+    # Send first run statistics
+    send_first_run_stats(
+        script_name='ip2cidr',
+        version=__version__
+    )
+
     parser = argparse.ArgumentParser(
         description='Convert IP addresses to /24 CIDR notation'
     )
