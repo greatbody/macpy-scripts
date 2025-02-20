@@ -1,0 +1,38 @@
+name: Build and Publish sunsoft-utils to PyPI
+
+on:
+  push:
+    tags:
+      - 'sunsoft-utils-v*'  # Trigger on version tags for sunsoft-utils
+  workflow_dispatch:  # Allow manual triggering of the workflow
+
+jobs:
+  pypi:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/sunsoft-utils
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: Build package
+      working-directory: ./sunsoft-utils
+      run: python -m build
+
+    - name: Publish to PyPI
+      working-directory: ./sunsoft-utils
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      run: twine upload dist/*
