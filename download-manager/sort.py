@@ -70,6 +70,16 @@ def update_llm_style(new_llm_style):
         yaml.dump(style, f)
 
 # 获取 Downloads 目录内容
+def get_dir_size(path):
+    """递归计算文件夹大小"""
+    total = 0
+    for dirpath, dirnames, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            if not os.path.islink(fp):  # 跳过符号链接
+                total += os.path.getsize(fp)
+    return total
+
 def get_downloads_contents():
     """获取 Downloads 目录中的文件和目录列表的详细信息，排除隐藏文件"""
     try:
@@ -78,12 +88,13 @@ def get_downloads_contents():
             if not item.startswith('.'):
                 path = os.path.join(DOWNLOADS_DIR, item)
                 stat = os.stat(path)
+                is_dir = os.path.isdir(path)
 
                 # 获取文件/目录信息
                 info = {
                     'name': item,
-                    'is_dir': os.path.isdir(path),
-                    'size': stat.st_size,
+                    'is_dir': is_dir,
+                    'size': get_dir_size(path) if is_dir else stat.st_size,
                     'created': datetime.datetime.fromtimestamp(stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
                     'modified': datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
                     'mode': oct(stat.st_mode)[-3:],  # 权限信息
@@ -101,7 +112,7 @@ def get_downloads_contents():
                     size_str = f"{info['size']/(1024*1024*1024):.1f}GB"
 
                 # 格式化输出信息
-                type_str = "📁 目录" if info['is_dir'] else "📄 文件"
+                type_str = "📁 目录" if is_dir else "📄 文件"
                 contents.append({
                     'name': item,
                     'info': info,
@@ -113,19 +124,38 @@ def get_downloads_contents():
         print(colored(f"[ERROR] 无法读取Downloads目录: {e}", "red"))
         sys.exit(1)
 
-# 发送请求到 LLM
+def is_command_line(line):
+    """判断一行是否是命令行"""
+    line = line.strip()
+    return line.startswith('mkdir ') or line.startswith('mv ')
+
 def send_to_llm(contents, style):
     """将目录内容和样式发送到 LLM，获取整理命令"""
     system_prompt = (
-        "你是一位专业的文件整理专家，擅长从多个维度分析和组织文件。在整理文件时，你会："
-        "\n1. 分析文件名规律：寻找文件名中的共同模式、日期、项目名等信息"
-        "\n2. 识别项目关联：判断文件是否属于同一个项目或主题"
-        "\n3. 理解使用场景：推测文件的使用场景（如学习资料、工作项目、娱乐内容等）"
-        "\n4. 考虑文件类型：不仅按扩展名分类，更注重文件的实际用途"
-        "\n5. 使用合理的中文目录名：选择清晰、具体且符合中文使用习惯的目录名"
-        "\n6. 分析文件大小：对于大文件或相似大小的文件可能是相关文件"
-        "\n7. 考虑时间信息：根据创建和修改时间判断文件关联性"
-        "\n\n在创建目录时，优先考虑以下命名方式："
+        "你是一位专业的文件整理专家，擅长从多个维度分析和组织文件。你的工作原则是："
+        "\n1. 保持克制：不是所有文件都需要移动，不是所有文件夹都需要合并"
+        "\n2. 尊重现状：如果现有的文件夹组织合理，就保持不变"
+        "\n3. 明智决策：移动或合并文件夹时，必须有充分的理由"
+        "\n\n在分析文件时，你会考虑："
+        "\n1. 文件名规律：寻找文件名中的共同模式、日期、项目名等信息"
+        "\n2. 项目关联：判断文件是否确实属于同一个项目或主题"
+        "\n3. 使用场景：推测文件的实际使用场景（学习、工作、娱乐等）"
+        "\n4. 时间关联：根据创建和修改时间判断文件关联性"
+        "\n5. 大小特征：对于大文件或相似大小的文件判断是否相关"
+        "\n\n在决定是否移动文件或文件夹时，遵循以下准则："
+        "\n1. 对于已存在的文件夹："
+        "\n   - 如果文件夹名称清晰且内容合理，保持不变"
+        "\n   - 只有在确定存在更好组织方式时才考虑调整"
+        "\n   - 如果文件夹可能正在使用，不轻易移动"
+        "\n2. 对于散落的文件："
+        "\n   - 优先归入已存在的合适文件夹"
+        "\n   - 确实需要时才创建新文件夹"
+        "\n   - 孤立文件如果没有明确分类，可以保持原位"
+        "\n3. 合并文件夹的条件："
+        "\n   - 确定文件夹内容高度相关"
+        "\n   - 合并后能提高文件组织的清晰度"
+        "\n   - 不会破坏现有的使用逻辑"
+        "\n\n在创建新目录时，优先使用以下命名方式："
         "\n- 项目类：'项目-项目名称'，如 '项目-网站设计'"
         "\n- 学习类：'学习-主题'，如 '学习-Python'"
         "\n- 工作类：'工作-类别'，如 '工作-会议记录'"
@@ -142,23 +172,26 @@ def send_to_llm(contents, style):
     user_prompt = (
         "这是当前下载文件夹中的文件列表及其详细信息，请帮我整理：\n\n" +
         "\n".join([item['display'] for item in contents]) +
-        "\n\n请按照以下步骤整理文件："
-        "\n1. 先仔细分析文件的所有信息，包括："
-        "\n   - 文件名规律和关联性"
-        "\n   - 文件大小（相近大小可能是相关文件）"
-        "\n   - 修改时间（相近时间可能是相关文件）"
-        "\n   - 是否为目录"
-        "\n2. 创建合适的中文目录（使用 mkdir 命令）"
-        "\n3. 将文件移动到对应目录（使用 mv 命令）"
-        "\n\n要求："
+        "\n\n请按照以下步骤分析和整理："
+        "\n1. 首先分析现有文件夹："
+        "\n   - 评估每个文件夹的组织是否合理"
+        "\n   - 判断是否需要调整或合并"
+        "\n   - 合理的文件夹结构应该保持不变"
+        "\n2. 然后分析散落的文件："
+        "\n   - 检查是否可以归入现有文件夹"
+        "\n   - 寻找文件之间的关联性"
+        "\n   - 评估是否需要创建新的文件夹"
+        "\n3. 生成必要的整理命令："
+        "\n   - 只对确实需要调整的内容生成命令"
+        "\n   - 如果现有结构合理，可以不生成命令"
+        "\n   - 每个移动或合并操作都应该有明确的理由"
+        "\n\n命令生成要求："
         "\n1. 每行输出一条命令"
-        "\n2. 优先创建所有需要的目录，再移动文件"
-        "\n3. 相关文件应该放在同一个目录中"
-        "\n4. 目录名要用中文，清晰表达内容类型"
-        "\n5. 所有路径都要用单引号包围"
-        "\n6. 如果发现文件可能属于同一个项目或主题，请放在同一个目录下"
-        "\n7. 如果文件名包含日期或修改时间相近，可以考虑按时间组织"
-        "\n8. 对于大文件（>100MB），可以单独归类或特殊处理"
+        "\n2. 如果需要创建新目录，先创建目录再移动文件"
+        "\n3. 目录名要用中文，清晰表达内容类型"
+        "\n4. 所有路径都要用单引号包围"
+        "\n5. 不要移动组织合理的文件夹"
+        "\n6. 不要过度整理，保持必要的克制"
     )
 
     print(colored("\n[LLM REQUEST] 发送到LLM的请求:", "blue"))
@@ -195,6 +228,7 @@ def send_to_llm(contents, style):
         full_response = []
         current_line = []
         command_buffer = ""
+        has_operations = False  # 添加标志来跟踪是否有实际操作
 
         for chunk in response_stream:
             if chunk.choices[0].delta.content is not None:
@@ -209,10 +243,11 @@ def send_to_llm(contents, style):
                             completed_line = ''.join(current_line)
                             command_buffer = completed_line.strip()
 
-                            # Process the command if it's valid
-                            if command_buffer:
+                            # 只有当行内容看起来像命令时才进行命令处理
+                            if is_command_line(command_buffer):
                                 if validate_command(command_buffer):
                                     print(colored(f"\n[模拟] 执行命令: {command_buffer}", "yellow"))
+                                    has_operations = True  # 标记有实际操作
 
                                     # Simulate the command
                                     if command_buffer.startswith('mkdir'):
@@ -229,7 +264,7 @@ def send_to_llm(contents, style):
                                     print_tree(fs)
                                     print()  # Add a blank line for readability
                                 else:
-                                    print(colored(f"\n[警告] 跳过无效命令: {command_buffer}", "red"))
+                                    print(colored(f"\n[警告] 无效命令格式: {command_buffer}", "red"))
 
                             full_response.append(completed_line)
                             current_line = []
@@ -242,21 +277,29 @@ def send_to_llm(contents, style):
             completed_line = ''.join(current_line)
             if completed_line.strip():
                 full_response.append(completed_line)
-                if validate_command(completed_line.strip()):
-                    print(colored(f"\n[模拟] 执行最后的命令: {completed_line.strip()}", "yellow"))
-                    if completed_line.startswith('mkdir'):
-                        dirname = completed_line.split("'")[1]
-                        simulate_mkdir(fs, dirname)
-                    elif completed_line.startswith('mv'):
-                        parts = completed_line.split("'")
-                        src = parts[1]
-                        dst = parts[3]
-                        simulate_mv(fs, src, dst)
-                    print(colored("\n最终文件结构:", "green"))
-                    print_tree(fs)
+                if is_command_line(completed_line.strip()):
+                    if validate_command(completed_line.strip()):
+                        print(colored(f"\n[模拟] 执行最后的命令: {completed_line.strip()}", "yellow"))
+                        has_operations = True  # 标记有实际操作
+                        if completed_line.startswith('mkdir'):
+                            dirname = completed_line.split("'")[1]
+                            simulate_mkdir(fs, dirname)
+                        elif completed_line.startswith('mv'):
+                            parts = completed_line.split("'")
+                            src = parts[1]
+                            dst = parts[3]
+                            simulate_mv(fs, src, dst)
+                        print(colored("\n最终文件结构:", "green"))
+                        print_tree(fs)
+                    else:
+                        print(colored(f"\n[警告] 无效命令格式: {completed_line.strip()}", "red"))
 
-        print(colored("\n[完成] 所有命令模拟完成", "green"))
-        return '\n'.join(full_response)
+        if has_operations:
+            print(colored("\n[完成] 所有命令模拟完成", "green"))
+        else:
+            print(colored("\n[完成] 无需进行任何整理操作", "green"))
+
+        return '\n'.join(full_response), has_operations
 
     except Exception as e:
         print(colored(f"[错误] API请求失败: {e}", "red"))
@@ -464,26 +507,17 @@ def main():
 
     print(colored("\n[INFO] 当前目录内容:", "green"))
     for item in contents:
-        print(f"- {item['name']}")
+        print(item['display'])  # 使用详细的显示信息
 
     # 使用LLM整理
     print(colored("[INFO] 正在使用AI分析文件并生成整理方案...", "green"))
-    response = send_to_llm(contents, style_text)
-    commands = parse_commands(response)
+    response, has_operations = send_to_llm(contents, style_text)
 
-    if not commands:
-        print(colored("[INFO] 没有需要整理的文件。", "green"))
+    if not has_operations:
+        print(colored("[INFO] AI认为当前结构合理，无需调整。", "green"))
         return
 
-    print(colored("\n[INFO] AI生成的整理命令:", "green"))
-    for cmd in commands:
-        print(f"- {cmd}")
-
-    # 模拟执行
-    print(colored("[INFO] 模拟执行开始...", "green"))
-    simulated_fs = simulate_execution(commands)
-    print(colored("\n模拟执行后的文件结构：", "green"))
-    print_tree(simulated_fs)
+    commands = parse_commands(response)
 
     # 用户确认
     confirm = input("\n是否执行整理操作？(yes/no): ").strip().lower()
