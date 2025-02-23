@@ -71,10 +71,44 @@ def update_llm_style(new_llm_style):
 
 # 获取 Downloads 目录内容
 def get_downloads_contents():
-    """获取 Downloads 目录中的文件和目录列表，排除隐藏文件"""
+    """获取 Downloads 目录中的文件和目录列表的详细信息，排除隐藏文件"""
     try:
-        contents = os.listdir(DOWNLOADS_DIR)
-        return [item for item in contents if not item.startswith('.')]
+        contents = []
+        for item in os.listdir(DOWNLOADS_DIR):
+            if not item.startswith('.'):
+                path = os.path.join(DOWNLOADS_DIR, item)
+                stat = os.stat(path)
+
+                # 获取文件/目录信息
+                info = {
+                    'name': item,
+                    'is_dir': os.path.isdir(path),
+                    'size': stat.st_size,
+                    'created': datetime.datetime.fromtimestamp(stat.st_ctime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'modified': datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'mode': oct(stat.st_mode)[-3:],  # 权限信息
+                    'owner': stat.st_uid,  # 所有者ID
+                }
+
+                # 格式化大小
+                if info['size'] < 1024:
+                    size_str = f"{info['size']}B"
+                elif info['size'] < 1024 * 1024:
+                    size_str = f"{info['size']/1024:.1f}KB"
+                elif info['size'] < 1024 * 1024 * 1024:
+                    size_str = f"{info['size']/(1024*1024):.1f}MB"
+                else:
+                    size_str = f"{info['size']/(1024*1024*1024):.1f}GB"
+
+                # 格式化输出信息
+                type_str = "📁 目录" if info['is_dir'] else "📄 文件"
+                contents.append({
+                    'name': item,
+                    'info': info,
+                    'display': f"{type_str} {item}\n  大小: {size_str} | 修改时间: {info['modified']} | 权限: {info['mode']}"
+                })
+
+        return contents
     except Exception as e:
         print(colored(f"[ERROR] 无法读取Downloads目录: {e}", "red"))
         sys.exit(1)
@@ -89,12 +123,15 @@ def send_to_llm(contents, style):
         "\n3. 理解使用场景：推测文件的使用场景（如学习资料、工作项目、娱乐内容等）"
         "\n4. 考虑文件类型：不仅按扩展名分类，更注重文件的实际用途"
         "\n5. 使用合理的中文目录名：选择清晰、具体且符合中文使用习惯的目录名"
+        "\n6. 分析文件大小：对于大文件或相似大小的文件可能是相关文件"
+        "\n7. 考虑时间信息：根据创建和修改时间判断文件关联性"
         "\n\n在创建目录时，优先考虑以下命名方式："
         "\n- 项目类：'项目-项目名称'，如 '项目-网站设计'"
         "\n- 学习类：'学习-主题'，如 '学习-Python'"
         "\n- 工作类：'工作-类别'，如 '工作-会议记录'"
         "\n- 娱乐类：'娱乐-类别'，如 '娱乐-电影'"
         "\n- 临时文件：'临时文件-日期'"
+        "\n- 大文件：'大文件-类别'，如 '大文件-视频'"
         "\n\n你只能使用以下命令格式："
         "\n1. mkdir命令格式：mkdir -p '目录名'"
         "\n2. mv命令格式：mv '源文件' '目标目录'"
@@ -103,10 +140,14 @@ def send_to_llm(contents, style):
     )
 
     user_prompt = (
-        "这是当前下载文件夹中的文件列表，请帮我整理：\n\n" +
-        "\n".join([f"- {item}" for item in contents]) +
+        "这是当前下载文件夹中的文件列表及其详细信息，请帮我整理：\n\n" +
+        "\n".join([item['display'] for item in contents]) +
         "\n\n请按照以下步骤整理文件："
-        "\n1. 先仔细分析文件名，找出可能的关联性"
+        "\n1. 先仔细分析文件的所有信息，包括："
+        "\n   - 文件名规律和关联性"
+        "\n   - 文件大小（相近大小可能是相关文件）"
+        "\n   - 修改时间（相近时间可能是相关文件）"
+        "\n   - 是否为目录"
         "\n2. 创建合适的中文目录（使用 mkdir 命令）"
         "\n3. 将文件移动到对应目录（使用 mv 命令）"
         "\n\n要求："
@@ -116,7 +157,8 @@ def send_to_llm(contents, style):
         "\n4. 目录名要用中文，清晰表达内容类型"
         "\n5. 所有路径都要用单引号包围"
         "\n6. 如果发现文件可能属于同一个项目或主题，请放在同一个目录下"
-        "\n7. 如果文件名包含日期，可以考虑按时间组织"
+        "\n7. 如果文件名包含日期或修改时间相近，可以考虑按时间组织"
+        "\n8. 对于大文件（>100MB），可以单独归类或特殊处理"
     )
 
     print(colored("\n[LLM REQUEST] 发送到LLM的请求:", "blue"))
@@ -362,22 +404,22 @@ def organize_downloads():
 
     # 首先创建所需的目录
     for file in contents:
-        if os.path.isfile(os.path.join(DOWNLOADS_DIR, file)):
-            category = categorize_file(file)
+        if os.path.isfile(os.path.join(DOWNLOADS_DIR, file['name'])):
+            category = categorize_file(file['name'])
             if category not in categories:
                 categories.add(category)
                 commands.append(f"mkdir -p '{category}'")
 
     # 然后移动文件
     for file in contents:
-        file_path = os.path.join(DOWNLOADS_DIR, file)
-        if os.path.isfile(file_path) and not file.startswith('.'):
-            category = categorize_file(file)
-            safe_filename = get_safe_filename(file, os.path.join(DOWNLOADS_DIR, category))
-            if safe_filename != file:
-                commands.append(f"mv '{file}' '{category}/{safe_filename}'")
+        file_path = os.path.join(DOWNLOADS_DIR, file['name'])
+        if os.path.isfile(file_path) and not file['name'].startswith('.'):
+            category = categorize_file(file['name'])
+            safe_filename = get_safe_filename(file['name'], os.path.join(DOWNLOADS_DIR, category))
+            if safe_filename != file['name']:
+                commands.append(f"mv '{file['name']}' '{category}/{safe_filename}'")
             else:
-                commands.append(f"mv '{file}' '{category}'")
+                commands.append(f"mv '{file['name']}' '{category}'")
 
     return commands
 
@@ -422,7 +464,7 @@ def main():
 
     print(colored("\n[INFO] 当前目录内容:", "green"))
     for item in contents:
-        print(f"- {item}")
+        print(f"- {item['name']}")
 
     # 使用LLM整理
     print(colored("[INFO] 正在使用AI分析文件并生成整理方案...", "green"))
